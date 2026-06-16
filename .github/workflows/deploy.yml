@@ -3,7 +3,7 @@ name: Build and Deploy
 on:
   push:
     branches:
-      - dukaan
+      - master
 
 concurrency:
   group: dukaan-deploy
@@ -13,8 +13,9 @@ jobs:
   docker:
     runs-on: ubuntu-latest
 
+    # MUST allow write access for cross-repo copying or syncing actions
     permissions:
-      contents: read
+      contents: write
 
     steps:
       - name: Checkout Code
@@ -24,10 +25,7 @@ jobs:
         id: vars
         run: echo "sha_short=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
 
-      - name: Verify SHA Output
-        run: echo "${{ steps.vars.outputs.sha_short }}"
-
-      - name: Update Image Version in Deployment Manifest
+      - name: Update Image Name Tag in Manifest
         uses: jacobtomlinson/gha-find-replace@v3
         with:
           find: "dukaan/seller-web:latest"
@@ -35,14 +33,13 @@ jobs:
           include: "deployment/**"
           regex: false
 
-      - name: Cache Next.js Build
-        uses: actions/cache@v4
+      - name: Update Version Env Variable Tracking in Manifest
+        uses: jacobtomlinson/gha-find-replace@v3
         with:
-          path: |
-            ${{ github.workspace }}/.next/cache
-          key: ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-nextjs-
+          find: "value: \"seller-web:latest\""
+          replace: "value: \"seller-web:${{ steps.vars.outputs.sha_short }}\""
+          include: "deployment/**"
+          regex: false
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -70,7 +67,6 @@ jobs:
         uses: dnmemec/copy/file_to_another_repo_action@main
         env:
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
-          BUILD_VERSION: ${{ steps.vars.outputs.sha_short }}
         with:
           source_file: deployment/seller-web.yaml
           destination_repo: formalrajdeo/infra
@@ -78,4 +74,4 @@ jobs:
           destination_folder: edge/seller-web/
           user_email: formal.rajdeo@gmail.com
           user_name: rajdeo
-          commit_message: "seller web update from CI pipeline"
+          commit_message: "seller web update from CI pipeline [SHA: ${{ steps.vars.outputs.sha_short }}]"
