@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: seller-web
-          image: dukaan/seller-web:latest   # CI will replace this with SHA tag
+          image: 1998rajdeo/seller-web:latest   # CI will replace this with SHA tag
           imagePullPolicy: IfNotPresent
           workingDir: /app
           ports:
@@ -26,9 +26,9 @@ spec:
             - name: NODE_ENV
               value: "production"
             - name: VERSION
-              value: "seller-web:latest"
+              value: "1998rajdeo/seller-web:latest"
             - name: TRACING_SERVICE_NAME
-              value: "seller-web"
+              value: "1998rajdeo/seller-web"
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: "http://my-release-signoz-otel-collector.observability.svc.cluster.local:4318"
           livenessProbe:
