@@ -64,14 +64,30 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Push Deployment Manifest to Infra Repo
-        uses: dnmemec/copy-file-to-another-repository@main
         env:
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
-        with:
-          source_file: 'deployment/seller-web.yaml'
-          destination_repo: 'formalrajdeo/infra'
-          destination_branch: 'master'
-          destination_folder: 'edge/seller-web/'
-          user_email: 'formal.rajdeo@gmail.com'
-          user_name: 'formalrajdeo'
-          commit_message: 'seller web update from CI pipeline [SHA: ${{ steps.vars.outputs.sha_short }}]'
+        run: |
+          # 1. Clone the target infra repository using your secret token
+          git clone https://x-access-token:${API_TOKEN_GITHUB}@github.com/formalrajdeo/infra.git infra-repo
+          
+          # 2. Ensure the destination directory exists inside the cloned repo
+          mkdir -p infra-repo/edge/seller-web/
+          
+          # 3. Copy the modified manifest file into the destination folder
+          cp deployment/seller-web.yaml infra-repo/edge/seller-web/seller-web.yaml
+          
+          # 4. Navigate into the infra repo and configure local Git identity
+          cd infra-repo
+          git config user.name "rajdeo"
+          git config user.email "formal.rajdeo@gmail.com"
+          
+          # 5. Stage, commit, and push changes back to the master branch
+          git add edge/seller-web/seller-web.yaml
+          
+          # Only commit and push if the manifest actually changed
+          if git diff-index --quiet HEAD --; then
+            echo "No changes detected in the manifest file. Skipping push."
+          else
+            git commit -m "seller web update from CI pipeline [SHA: ${{ steps.vars.outputs.sha_short }}]"
+            git push origin master
+          fi
