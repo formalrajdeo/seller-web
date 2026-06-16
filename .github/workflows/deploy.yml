@@ -64,14 +64,14 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Push Deployment Manifest to Infra Repo
-        uses: dnmemec/copy/file_to_another_repo_action@main
+        uses: dnmemec/copy-file-to-another-repository@main
         env:
           API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
         with:
-          source_file: deployment/seller-web.yaml
-          destination_repo: formalrajdeo/infra
-          destination_branch: master
-          destination_folder: edge/seller-web/
-          user_email: formal.rajdeo@gmail.com
-          user_name: rajdeo
-          commit_message: "seller web update from CI pipeline [SHA: ${{ steps.vars.outputs.sha_short }}]"
+          source_file: 'deployment/seller-web.yaml'
+          destination_repo: 'formalrajdeo/infra'
+          destination_branch: 'master'
+          destination_folder: 'edge/seller-web/'
+          user_email: 'formal.rajdeo@gmail.com'
+          user_name: 'formalrajdeo'
+          commit_message: 'seller web update from CI pipeline [SHA: ${{ steps.vars.outputs.sha_short }}]'
