@@ -1,0 +1,81 @@
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - dukaan
+
+concurrency:
+  group: dukaan-deploy
+  cancel-in-progress: true
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Get Short Commit SHA
+        id: vars
+        run: echo "sha_short=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
+      - name: Verify SHA Output
+        run: echo "${{ steps.vars.outputs.sha_short }}"
+
+      - name: Update Image Version in Deployment Manifest
+        uses: jacobtomlinson/gha-find-replace@v3
+        with:
+          find: "dukaan/seller-web:latest"
+          replace: "dukaan/seller-web:${{ steps.vars.outputs.sha_short }}"
+          include: "deployment/**"
+          regex: false
+
+      - name: Cache Next.js Build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: dukaan/seller-web:${{ steps.vars.outputs.sha_short }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Push Deployment Manifest to Infra Repo
+        uses: dnmemec/copy/file_to_another_repo_action@main
+        env:
+          API_TOKEN_GITHUB: ${{ secrets.API_TOKEN_GITHUB }}
+          BUILD_VERSION: ${{ steps.vars.outputs.sha_short }}
+        with:
+          source_file: deployment/seller-web.yaml
+          destination_repo: formalrajdeo/infra
+          destination_branch: master
+          destination_folder: edge/seller-web/
+          user_email: formal.rajdeo@gmail.com
+          user_name: rajdeo
+          commit_message: "seller web update from CI pipeline"

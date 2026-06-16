@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: seller-web
+  annotations:
+    sidecar.jaegertracing.io/inject: "true"
+
+spec:
+  replicas: 3
+  revisionHistoryLimit: 3
+
+  selector:
+    matchLabels:
+      app: seller-web
+
+  template:
+    metadata:
+      labels:
+        app: seller-web
+
+    spec:
+      containers:
+        - name: seller-web
+          image: dukaan/seller-web:latest   # CI will replace this with SHA tag
+          workingDir: /app
+
+          ports:
+            - containerPort: 3000
+
+          command: ["node", "server.js"]
+
+          env:
+            - name: NODE_ENV
+              value: "production"
+
+            - name: VERSION
+              value: "seller-web:latest"
+
+            - name: TRACING_SERVICE_NAME
+              value: "seller-web"
+
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://my-release-signoz-otel-collector.observability.svc.cluster.local:4318"
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 20
+            periodSeconds: 60
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 30
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: seller-web-service
+
+spec:
+  selector:
+    app: seller-web
+
+  ports:
+    - port: 80
+      targetPort: 3000
+
+  type: ClusterIP
