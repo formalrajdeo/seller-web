@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
+import { trace } from "@opentelemetry/api";
 
 export async function GET() {
-    return NextResponse.json(
-        { status: "ok", service: "seller-web" },
-        { status: 200 }
-    );
+    const tracer = trace.getTracer("sample-nextjs");
+
+    const span = tracer.startSpan("health-api");
+    span.setAttribute("test", "signoz");
+    span.end();
+
+    return NextResponse.json({
+        status: "ok",
+        service: "seller-web",
+    });
 }

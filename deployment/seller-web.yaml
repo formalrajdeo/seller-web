@@ -28,9 +28,10 @@ spec:
             - name: VERSION
               value: "1998rajdeo/seller-web:latest"
             - name: TRACING_SERVICE_NAME
-              value: "1998rajdeo/seller-web"
+              value: "seller-web"
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: "http://my-release-signoz-otel-collector.observability.svc.cluster.local:4318"
+              # value: "http://my-release-signoz-otel-collector.observability.svc.cluster.local:4318"
+              value: "http://my-release-signoz-otel-collector.observability.svc.cluster.local:4318/v1/traces"
           livenessProbe:
             httpGet:
               path: /api/health
