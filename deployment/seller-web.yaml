@@ -21,7 +21,6 @@ spec:
           workingDir: /app
           ports:
             - containerPort: 3000
-          # Removed overridden ["node", "server.js"] command to respect Dockerfile's npm start entrypoint
           env:
             - name: NODE_ENV
               value: "production"
